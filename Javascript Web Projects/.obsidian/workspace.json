@@ -143,16 +143,21 @@
       "canvas:Create new canvas": false,
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
-      "command-palette:Open command palette": false
+      "command-palette:Open command palette": false,
+      "khoj:Khoj": false,
+      "obsidian-textgenerator-plugin:Generate Text!": false,
+      "obsidian-textgenerator-plugin:Text Generator: Templates Packages Manager": false,
+      "pieces-for-developers:Pieces For Developers": false
     }
   },
   "active": "2a5faf378e0fe940",
   "lastOpenFiles": [
+    "piecesdb.json",
+    "01. Quote Generator.md",
     "Template & Resources.md",
     "Welcome.md",
     "Advance Javascript Cheatsheet.md",
     "create a link.md",
-    "01. Quote Generator.md",
     "Javascript Web Projects/Template & Resources.md",
     "Javascript Web Projects/Advance Javascript Cheatsheet.md",
     "Javascript Web Projects/01. Quote Generator.md",
