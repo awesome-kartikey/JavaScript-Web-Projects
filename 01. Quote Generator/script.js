@@ -1,66 +1,82 @@
-// Get DOM Elements
-const quoteContainer = document.getElementById('quote-container');
-const quoteText = document.getElementById('quote');
-const authorText = document.getElementById('author');
-const twitterBtn = document.getElementById('twitter');
-const newQuoteBtn = document.getElementById('new-quote');
-const loader = document.getElementById('loader');
+import {localQuotes} from "./quotes.js";
 
-// Get Quote from API
-let apiQuotes = [];
+// Cache DOM Elements
+const elements = {
+  quoteContainer: document.getElementById("quote-container"),
+  quoteText: document.getElementById("quote"),
+  authorText: document.getElementById("author"),
+  twitterBtn: document.getElementById("twitter"),
+  newQuoteBtn: document.getElementById("new-quote"),
+  loader: document.getElementById("loader"),
+};
 
-// Show Loading
-function showLoading() {
-  loader.hidden = false;
-  quoteContainer.hidden = true;
+// API URL
+const apiUrl = "http://api.forismatic.com/api/1.0/?method=getQuote&lang=en&format=json";
+
+// Check if we're running on GitHub Pages or locally
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+// Use proxy only for local development, remove it for production (GitHub Pages)
+const proxyUrl = isLocalhost ? "https://cors-anywhere.herokuapp.com/" : "";
+
+// The full API endpoint
+const apiEndpoint = proxyUrl + apiUrl;
+
+// Toggle Loading State
+function toggleLoading(show) {
+  elements.loader.hidden = !show;
+  elements.quoteContainer.hidden = show;
 }
 
-// Hide Loading
-function hideLoading() {
-  quoteContainer.hidden = false;
-  loader.hidden = true;
-}
-
-// New Quote
-function newQuote(quoteData) {
-  // Check if Author field is blank and replace it with 'Unknown'
-  const author = quoteData.quoteAuthor === '' ? 'Unknown' : quoteData.quoteAuthor;
+// Display Quote
+function displayQuote({ quoteText, quoteAuthor }) {
+  if (!quoteText) return;
   
-  // Check Quote length to determine styling
-  if (quoteData.quoteText.length > 120) {
-    quoteText.classList.add('long-quote');
-  } else {
-    quoteText.classList.remove('long-quote');
-  }
-  // Set Quote, Hide Loader
-  quoteText.textContent = quoteData.quoteText;
-  authorText.textContent = author;
-  hideLoading();
+  elements.authorText.textContent = quoteAuthor || "Unknown";
+  elements.quoteText.classList.toggle("long-quote", quoteText.length > 120);
+  elements.quoteText.textContent = quoteText;
+  
+  toggleLoading(false);
 }
 
+// Get Random Quote from localQuotes array
+function getLocalQuote() {
+  const randomIndex = Math.floor(Math.random() * localQuotes.length);
+  const { text = "No quote available", author = "Unknown" } = localQuotes[randomIndex];
+  return { quoteText: text, quoteAuthor: author };
+}
+
+// Fetch Quote from API
+async function fetchQuote() {
+  const response = await fetch(apiEndpoint);
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+  return await response.json();
+}
+
+// Get Quote (with API or fallback to local quotes)
 async function getQuote() {
-  const apiUrl = "http://api.forismatic.com/api/1.0/?method=getQuote&lang=en&format=json";
-  const proxyUrl = "https://cors-anywhere.herokuapp.com/";
-  showLoading();
+  toggleLoading(true);
   try {
-    const response = await fetch(proxyUrl + apiUrl);
-    const data = await response.json();
-    newQuote(data);
+    const data = await fetchQuote();
+    console.log(data);
+    displayQuote(data);
   } catch (error) {
-    console.log("whoops, no quote", error);
-    getQuote(); // Try again if there's an error
+    console.warn("Error fetching quote:", error);
+    const localQuote = getLocalQuote();
+    console.log(localQuote);
+    displayQuote(localQuote);
   }
 }
-
-// On Load
-getQuote();
 
 // Tweet Quote
 function tweetQuote() {
-  const twitterUrl = `https://twitter.com/intent/tweet?text=${quoteText.textContent} - ${authorText.textContent}`;
-  window.open(twitterUrl, '_blank');
+  const twitterUrl = `https://twitter.com/intent/tweet?text=${elements.quoteText.textContent} - ${elements.authorText.textContent}`;
+  window.open(twitterUrl, "_blank");
 }
 
 // Event Listeners
-newQuoteBtn.addEventListener('click', newQuote);
-twitterBtn.addEventListener('click', tweetQuote);
+elements.newQuoteBtn.addEventListener("click", getQuote);
+elements.twitterBtn.addEventListener("click", tweetQuote);
+
+// On Load
+getQuote();
