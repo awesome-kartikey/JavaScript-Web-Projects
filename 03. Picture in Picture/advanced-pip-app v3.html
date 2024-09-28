@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Picture in Picture</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+        :root {
+            --primary-color: #4a00e0;
+            --secondary-color: #8e2de2;
+            --text-color: #333333;
+            --bg-color: #ffffff;
+            --card-bg: #f0f0f0;
+        }
+
+        .dark-mode {
+            --primary-color: #6200ea;
+            --secondary-color: #b388ff;
+            --text-color: #ffffff;
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-color);
+        }
+
+        .container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 800px;
+            width: 90%;
+        }
+
+        h1 {
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        #video-container {
+            margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #video {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        button, select, input[type="text"] {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            background: var(--primary-color);
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+
+        button:hover, select:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        input[type="text"] {
+            cursor: text;
+            background: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .file-label {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border: 2px dashed var(--secondary-color);
+            border-radius: 5px;
+            display: inline-block;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .file-label:hover {
+            background: rgba(142, 45, 226, 0.1);
+        }
+
+        #status {
+            margin-top: 1rem;
+            font-style: italic;
+            color: var(--text-color);
+        }
+
+        #filter-controls, #pip-controls, #youtube-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        #custom-pip {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            height: 180px;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            resize: both;
+        }
+
+        #custom-pip video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #timer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+
+        #theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #theme-toggle:hover {
+            background: var(--secondary-color);
+            transform: rotate(180deg);
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <button id="theme-toggle"><i class="fas fa-moon"></i></button>
+    <div class="container">
+        <h1>Ultimate Picture in Picture</h1>
+        <div id="video-container">
+            <video id="video" controls></video>
+            <div id="timer">00:00:00</div>
+        </div>
+        <div class="controls">
+            <button id="screen-share-btn" class="tooltip"><i class="fas fa-desktop"></i> Share Screen
+                <span class="tooltiptext">Share your screen</span>
+            </button>
+            <button id="pip-btn" disabled class="tooltip"><i class="fas fa-external-link-alt"></i> Start PiP
+                <span class="tooltiptext">Start Picture-in-Picture mode</span>
+            </button>
+            <button id="custom-pip-btn" disabled class="tooltip"><i class="fas fa-expand-arrows-alt"></i> Custom PiP
+                <span class="tooltiptext">Start custom Picture-in-Picture mode</span>
+            </button>
+            <button id="stop-btn" disabled class="tooltip"><i class="fas fa-stop"></i> Stop
+                <span class="tooltiptext">Stop playback</span>
+            </button>
+            <label for="file-input" class="file-label tooltip">
+                <i class="fas fa-upload"></i> Upload Video
+                <span class="tooltiptext">Upload a video file</span>
+            </label>
+            <input type="file" id="file-input" accept="video/*">
+        </div>
+        <div id="youtube-controls">
+            <input type="text" id="youtube-url" placeholder="Enter YouTube URL">
+            <button id="play-youtube-btn" class="tooltip"><i class="fab fa-youtube"></i> Play YouTube
+                <span class="tooltiptext">Play YouTube video</span>
+            </button>
+        </div>
+        <div id="filter-controls">
+            <select id="filter-select" class="tooltip">
+                <option value="none">No Filter</option>
+                <option value="grayscale(100%)">Grayscale</option>
+                <option value="sepia(100%)">Sepia</option>
+                <option value="invert(100%)">Invert</option>
+                <option value="hue-rotate(90deg)">Hue Rotate</option>
+                <option value="blur(5px)">Blur</option>
+                <span class="tooltiptext">Apply video filter</span>
+            </select>
+        </div>
+        <div id="pip-controls">
+            <button id="pip-move-btn" disabled class="tooltip"><i class="fas fa-arrows-alt"></i> Move PiP
+                <span class="tooltiptext">Enable PiP movement</span>
+            </button>
+            <button id="pip-resize-btn" disabled class="tooltip"><i class="fas fa-expand"></i> Resize PiP
+                <span class="tooltiptext">Enable PiP resizing</span>
+            </button>
+        </div>
+        <div id="status"></div>
+    </div>
+    <div id="custom-pip">
+        <video id="pip-video"></video>
+    </div>
+
+    <script>
+        const videoElement = document.getElementById('video');
+        const pipVideo = document.getElementById('pip-video');
+        const pipBtn = document.getElementById('pip-btn');
+        const customPipBtn = document.getElementById('custom-pip-btn');
+        const screenShareBtn = document.getElementById('screen-share-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const fileInput = document.getElementById('file-input');
+        const status = document.getElementById('status');
+        const filterSelect = document.getElementById('filter-select');
+        const customPip = document.getElementById('custom-pip');
+        const pipMoveBtn = document.getElementById('pip-move-btn');
+        const pipResizeBtn = document.getElementById('pip-resize-btn');
+        const timer = document.getElementById('timer');
+        const themeToggle = document.getElementById('theme-toggle');
+        const youtubeUrl = document.getElementById('youtube-url');
+        const playYoutubeBtn = document.getElementById('play-youtube-btn');
+
+        let mediaStream = null;
+        let isCustomPipActive = false;
+        let startTime;
+
+        function updateTimer() {
+            const now = new Date();
+            const diff = now - startTime;
+            const hours = Math.floor(diff / 3600000);
+            const minutes = Math.floor((diff % 3600000) / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            timer.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        async function startScreenShare() {
+            try {
+                mediaStream = await navigator.mediaDevices.getDisplayMedia();
+                videoElement.srcObject = mediaStream;
+                videoElement.onloadedmetadata = () => {
+                    videoElement.play();
+                    updateButtonStates(true);
+                    startTime = new Date();
+                    setInterval(updateTimer, 1000);
+                }
+                status.textContent = "Screen sharing started.";
+            } catch (error) {
+                console.error(error);
+                status.textContent = "Error starting screen share.";
+            }
+        }
+
+        function stopScreenShare() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                videoElement.srcObject = null;
+                updateButtonStates(false);
+                status.textContent = "Screen sharing stopped.";
+                clearInterval(updateTimer);
+                timer.textContent = "00:00:00";
+            }
+        }
+
+        async function startPictureInPicture() {
+            try {
+                await videoElement.requestPictureInPicture();
+                status.textContent = "Picture-in-Picture mode activated.";
+            } catch (error) {
+                console.error(error);
+                status.textContent = "Error starting Picture-in-Picture.";
+            }
+        }
+
+        function toggleCustomPiP() {
+            if (isCustomPipActive) {
+                customPip.style.display = 'none';
+                isCustomPipActive = false;
+                customPipBtn.innerHTML = '<i class="fas fa-expand-arrows-alt"></i> Custom PiP';
+                pipMoveBtn.disabled = true;
+                pipResizeBtn.disabled = true;
+            } else {
+                pipVideo.srcObject = videoElement.srcObject;
+                pipVideo.src = videoElement.src;
+                pipVideo.play();
+                customPip.style.display = 'block';
+                isCustomPipActive = true;
+                customPipBtn.innerHTML = '<i class="fas fa-compress-arrows-alt"></i> Exit Custom PiP';
+                pipMoveBtn.disabled = false;
+                pipResizeBtn.disabled = false;
+            }
+        }
+
+        function updateButtonStates(isActive) {
+            pipBtn.disabled = !isActive;
+            customPipBtn.disabled = !isActive;
+            stopBtn.disabled = !isActive;
+            screenShareBtn.disabled = isActive;
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            themeToggle.innerHTML = document.body.classList.contains('dark-mode') ? 
+                '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        }
+
+        function playYoutubeVideo() {
+            const videoId = getYoutubeVideoId(youtubeUrl.value);
+            if (videoId) {
+                videoElement.src = `https://www.youtube.com/embed/${videoId}`;
+                updateButtonStates(true);
+                status.textContent = "YouTube video loaded successfully.";
+                startTime = new Date();
+                setInterval(updateTimer, 1000);
+            } else {
+                status.textContent = "Invalid YouTube URL.";
+            }
+        }
+
+        function getYoutubeVideoId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        screenShareBtn.addEventListener('click', startScreenShare);
+        pipBtn.addEventListener('click', startPictureInPicture);
+        customPipBtn.addEventListener('click', toggleCustomPiP);
+        stopBtn.addEventListener('click', stopScreenShare);
+        themeToggle.addEventListener('click', toggleTheme);
+        playYoutubeBtn.addEventListener('click', playYoutubeVideo);
+
+
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const fileURL = URL.createObjectURL(file);
+            videoElement.src = fileURL;
+            updateButtonStates(true);
+            status.textContent = "Video uploaded successfully.";
+            startTime = new Date();
+            setInterval(updateTimer, 1000);
+        }
+    });
+
+    videoElement.addEventListener('leavepictureinpicture', () => {
+        status.textContent = "Left Picture-in-Picture mode.";
+    });
+
+    filterSelect.addEventListener('change', (event) => {
+        videoElement.style.filter = event.target.value;
+        pipVideo.style.filter = event.target.value;
+    });
+
+    let isDragging = false;
+    let startX, startY;
+
+    pipMoveBtn.addEventListener('click', () => {
+        customPip.style.cursor = 'move';
+        isDragging = false;
+    });
+
+    customPip.addEventListener('mousedown', (e) => {
+        if (pipMoveBtn.disabled) return;
+        isDragging = true;
+        startX = e.clientX - customPip.offsetLeft;
+        startY = e.clientY - customPip.offsetTop;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const newX = e.clientX - startX;
+        const newY = e.clientY - startY;
+        customPip.style.left = `${newX}px`;
+        customPip.style.top = `${newY}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        customPip.style.cursor = 'default';
+    });
+
+    pipResizeBtn.addEventListener('click', () => {
+        customPip.style.resize = customPip.style.resize === 'both' ? 'none' : 'both';
+    });
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'p') {
+            e.preventDefault();
+            if (!pipBtn.disabled) startPictureInPicture();
+        } else if (e.ctrlKey && e.key === 'c') {
+            e.preventDefault();
+            if (!customPipBtn.disabled) toggleCustomPiP();
+        } else if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            if (!screenShareBtn.disabled) startScreenShare();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            if (!stopBtn.disabled) stopScreenShare();
+        }
+    });
+
+    // Add fullscreen functionality
+    const fullscreenBtn = document.createElement('button');
+    fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i> Fullscreen';
+    fullscreenBtn.classList.add('tooltip');
+    const tooltip = document.createElement('span');
+    tooltip.classList.add('tooltiptext');
+    tooltip.textContent = 'Toggle fullscreen';
+    fullscreenBtn.appendChild(tooltip);
+    document.querySelector('.controls').appendChild(fullscreenBtn);
+
+    fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            if (videoElement.requestFullscreen) {
+                videoElement.requestFullscreen();
+            } else if (videoElement.mozRequestFullScreen) { // Firefox
+                videoElement.mozRequestFullScreen();
+            } else if (videoElement.webkitRequestFullscreen) { // Chrome, Safari and Opera
+                videoElement.webkitRequestFullscreen();
+            } else if (videoElement.msRequestFullscreen) { // IE/Edge
+                videoElement.msRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+    });
+
+    // Add volume control
+    const volumeControl = document.createElement('input');
+    volumeControl.type = 'range';
+    volumeControl.min = 0;
+    volumeControl.max = 1;
+    volumeControl.step = 0.1;
+    volumeControl.value = 1;
+    volumeControl.classList.add('tooltip');
+    const volumeTooltip = document.createElement('span');
+    volumeTooltip.classList.add('tooltiptext');
+    volumeTooltip.textContent = 'Adjust volume';
+    volumeControl.appendChild(volumeTooltip);
+    document.querySelector('#filter-controls').appendChild(volumeControl);
+
+    volumeControl.addEventListener('input', (e) => {
+        videoElement.volume = e.target.value;
+        pipVideo.volume = e.target.value;
+    });
+
+    // Add playback speed control
+    const speedControl = document.createElement('select');
+    speedControl.innerHTML = `
+        <option value="0.5">0.5x</option>
+        <option value="1" selected>1x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2">2x</option>
+    `;
+    speedControl.classList.add('tooltip');
+    const speedTooltip = document.createElement('span');
+    speedTooltip.classList.add('tooltiptext');
+    speedTooltip.textContent = 'Adjust playback speed';
+    speedControl.appendChild(speedTooltip);
+    document.querySelector('#filter-controls').appendChild(speedControl);
+
+    speedControl.addEventListener('change', (e) => {
+        videoElement.playbackRate = parseFloat(e.target.value);
+        pipVideo.playbackRate = parseFloat(e.target.value);
+    });
+
+    // Add a feature to take screenshots
+    const screenshotBtn = document.createElement('button');
+    screenshotBtn.innerHTML = '<i class="fas fa-camera"></i> Screenshot';
+    screenshotBtn.classList.add('tooltip');
+    const screenshotTooltip = document.createElement('span');
+    screenshotTooltip.classList.add('tooltiptext');
+    screenshotTooltip.textContent = 'Take a screenshot';
+    screenshotBtn.appendChild(screenshotTooltip);
+    document.querySelector('.controls').appendChild(screenshotBtn);
+
+    screenshotBtn.addEventListener('click', () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+        canvas.getContext('2d').drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        
+        const link = document.createElement('a');
+        link.download = 'screenshot.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    });
+
+    // Initialize tooltips
+    const tooltips = document.querySelectorAll('.tooltip');
+    tooltips.forEach(tooltip => {
+        const tooltiptext = document.createElement('span');
+        tooltiptext.classList.add('tooltiptext');
+        tooltiptext.textContent = tooltip.getAttribute('data-tooltip') || tooltip.title || 'Tooltip';
+        tooltip.appendChild(tooltiptext);
+    });
+</script>
+</body>
+</html>

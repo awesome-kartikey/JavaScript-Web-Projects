@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Picture in Picture</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+        :root {
+            --primary-color: #4a00e0;
+            --secondary-color: #8e2de2;
+            --text-color: #ffffff;
+            --bg-color: #1a1a2e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-color);
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 800px;
+            width: 90%;
+        }
+
+        h1 {
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        #video-container {
+            margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #video {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        button, select {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            background: var(--primary-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        button:hover, select:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .file-label {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border: 2px dashed var(--secondary-color);
+            border-radius: 5px;
+            display: inline-block;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .file-label:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #status {
+            margin-top: 1rem;
+            font-style: italic;
+            color: #8e8e8e;
+        }
+
+        #filter-controls, #pip-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        #custom-pip {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            height: 180px;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            resize: both;
+        }
+
+        #custom-pip video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #timer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Enhanced Picture in Picture</h1>
+        <div id="video-container">
+            <video id="video" controls></video>
+            <div id="timer">00:00:00</div>
+        </div>
+        <div class="controls">
+            <button id="screen-share-btn"><i class="fas fa-desktop"></i> Share Screen</button>
+            <button id="pip-btn" disabled><i class="fas fa-external-link-alt"></i> Start PiP</button>
+            <button id="custom-pip-btn" disabled><i class="fas fa-expand-arrows-alt"></i> Custom PiP</button>
+            <button id="stop-btn" disabled><i class="fas fa-stop"></i> Stop</button>
+            <label for="file-input" class="file-label">
+                <i class="fas fa-upload"></i> Upload Video
+            </label>
+            <input type="file" id="file-input" accept="video/*">
+        </div>
+        <div id="filter-controls">
+            <select id="filter-select">
+                <option value="none">No Filter</option>
+                <option value="grayscale(100%)">Grayscale</option>
+                <option value="sepia(100%)">Sepia</option>
+                <option value="invert(100%)">Invert</option>
+                <option value="hue-rotate(90deg)">Hue Rotate</option>
+                <option value="blur(5px)">Blur</option>
+            </select>
+        </div>
+        <div id="pip-controls">
+            <button id="pip-move-btn" disabled><i class="fas fa-arrows-alt"></i> Move PiP</button>
+            <button id="pip-resize-btn" disabled><i class="fas fa-expand"></i> Resize PiP</button>
+        </div>
+        <div id="status"></div>
+    </div>
+    <div id="custom-pip">
+        <video id="pip-video"></video>
+    </div>
+
+    <script>
+        const videoElement = document.getElementById('video');
+        const pipVideo = document.getElementById('pip-video');
+        const pipBtn = document.getElementById('pip-btn');
+        const customPipBtn = document.getElementById('custom-pip-btn');
+        const screenShareBtn = document.getElementById('screen-share-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const fileInput = document.getElementById('file-input');
+        const status = document.getElementById('status');
+        const filterSelect = document.getElementById('filter-select');
+        const customPip = document.getElementById('custom-pip');
+        const pipMoveBtn = document.getElementById('pip-move-btn');
+        const pipResizeBtn = document.getElementById('pip-resize-btn');
+        const timer = document.getElementById('timer');
+
+        let mediaStream = null;
+        let isCustomPipActive = false;
+        let startTime;
+
+        function updateTimer() {
+            const now = new Date();
+            const diff = now - startTime;
+            const hours = Math.floor(diff / 3600000);
+            const minutes = Math.floor((diff % 3600000) / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            timer.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        async function startScreenShare() {
+            try {
+                mediaStream = await navigator.mediaDevices.getDisplayMedia();
+                videoElement.srcObject = mediaStream;
+                videoElement.onloadedmetadata = () => {
+                    videoElement.play();
+                    updateButtonStates(true);
+                    startTime = new Date();
+                    setInterval(updateTimer, 1000);
+                }
+                status.textContent = "Screen sharing started.";
+            } catch (error) {
+                console.error(error);
+                status.textContent = "Error starting screen share.";
+            }
+        }
+
+        function stopScreenShare() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                videoElement.srcObject = null;
+                updateButtonStates(false);
+                status.textContent = "Screen sharing stopped.";
+                clearInterval(updateTimer);
+                timer.textContent = "00:00:00";
+            }
+        }
+
+        async function startPictureInPicture() {
+            try {
+                await videoElement.requestPictureInPicture();
+                status.textContent = "Picture-in-Picture mode activated.";
+            } catch (error) {
+                console.error(error);
+                status.textContent = "Error starting Picture-in-Picture.";
+            }
+        }
+
+        function toggleCustomPiP() {
+            if (isCustomPipActive) {
+                customPip.style.display = 'none';
+                isCustomPipActive = false;
+                customPipBtn.innerHTML = '<i class="fas fa-expand-arrows-alt"></i> Custom PiP';
+                pipMoveBtn.disabled = true;
+                pipResizeBtn.disabled = true;
+            } else {
+                pipVideo.srcObject = videoElement.srcObject;
+                pipVideo.play();
+                customPip.style.display = 'block';
+                isCustomPipActive = true;
+                customPipBtn.innerHTML = '<i class="fas fa-compress-arrows-alt"></i> Exit Custom PiP';
+                pipMoveBtn.disabled = false;
+                pipResizeBtn.disabled = false;
+            }
+        }
+
+        function updateButtonStates(isActive) {
+            pipBtn.disabled = !isActive;
+            customPipBtn.disabled = !isActive;
+            stopBtn.disabled = !isActive;
+            screenShareBtn.disabled = isActive;
+        }
+
+        screenShareBtn.addEventListener('click', startScreenShare);
+        pipBtn.addEventListener('click', startPictureInPicture);
+        customPipBtn.addEventListener('click', toggleCustomPiP);
+        stopBtn.addEventListener('click', stopScreenShare);
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const fileURL = URL.createObjectURL(file);
+                videoElement.src = fileURL;
+                updateButtonStates(true);
+                status.textContent = "Video uploaded successfully.";
+                startTime = new Date();
+                setInterval(updateTimer, 1000);
+            }
+        });
+
+        videoElement.addEventListener('leavepictureinpicture', () => {
+            status.textContent = "Left Picture-in-Picture mode.";
+        });
+
+        filterSelect.addEventListener('change', (event) => {
+            videoElement.style.filter = event.target.value;
+            pipVideo.style.filter = event.target.value;
+        });
+
+        let isDragging = false;
+        let startX, startY;
+
+        pipMoveBtn.addEventListener('click', () => {
+            customPip.style.cursor = 'move';
+            isDragging = false;
+        });
+
+        customPip.addEventListener('mousedown', (e) => {
+            if (pipMoveBtn.disabled) return;
+            isDragging = true;
+            startX = e.clientX - customPip.offsetLeft;
+            startY = e.clientY - customPip.offsetTop;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const newX = e.clientX - startX;
+            const newY = e.clientY - startY;
+            customPip.style.left = `${newX}px`;
+            customPip.style.top = `${newY}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            customPip.style.cursor = 'default';
+        });
+
+        pipResizeBtn.addEventListener('click', () => {
+            customPip.style.resize = customPip.style.resize === 'both' ? 'none' : 'both';
+        });
+    </script>
+</body>
+</html>

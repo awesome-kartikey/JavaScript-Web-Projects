@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Picture in Picture</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        #video-container {
+            margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+
+        #video {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 10px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            background: #4a00e0;
+            color: #fff;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #5e17eb;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .file-label {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border: 2px dashed #fff;
+            border-radius: 5px;
+            display: inline-block;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .file-label:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #status {
+            margin-top: 1rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Advanced Picture in Picture</h1>
+        <div id="video-container">
+            <video id="video" controls></video>
+        </div>
+        <div class="controls">
+            <button id="screen-share-btn"><i class="fas fa-desktop"></i> Share Screen</button>
+            <button id="pip-btn" disabled><i class="fas fa-external-link-alt"></i> Start PiP</button>
+            <button id="stop-btn" disabled><i class="fas fa-stop"></i> Stop</button>
+        </div>
+        <label for="file-input" class="file-label">
+            <i class="fas fa-upload"></i> Upload Video
+        </label>
+        <input type="file" id="file-input" accept="video/*">
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const videoElement = document.getElementById('video');
+        const pipBtn = document.getElementById('pip-btn');
+        const screenShareBtn = document.getElementById('screen-share-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const fileInput = document.getElementById('file-input');
+        const status = document.getElementById('status');
+
+        let mediaStream = null;
+
+        async function startScreenShare() {
+            try {
+                mediaStream = await navigator.mediaDevices.getDisplayMedia();
+                videoElement.srcObject = mediaStream;
+                videoElement.onloadedmetadata = () => {
+                    videoElement.play();
+                    updateButtonStates(true);
+                }
+                status.textContent = "Screen sharing started.";
+            } catch (error) {
+                console.error(error);
+                status.textContent = "Error starting screen share.";
+            }
+        }
+
+        function stopScreenShare() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                videoElement.srcObject = null;
+                updateButtonStates(false);
+                status.textContent = "Screen sharing stopped.";
+            }
+        }
+
+        async function startPictureInPicture() {
+            try {
+                await videoElement.requestPictureInPicture();
+                status.textContent = "Picture-in-Picture mode activated.";
+            } catch (error) {
+                console.error(error);
+                status.textContent = "Error starting Picture-in-Picture.";
+            }
+        }
+
+        function updateButtonStates(isActive) {
+            pipBtn.disabled = !isActive;
+            stopBtn.disabled = !isActive;
+            screenShareBtn.disabled = isActive;
+        }
+
+        screenShareBtn.addEventListener('click', startScreenShare);
+        pipBtn.addEventListener('click', startPictureInPicture);
+        stopBtn.addEventListener('click', stopScreenShare);
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const fileURL = URL.createObjectURL(file);
+                videoElement.src = fileURL;
+                updateButtonStates(true);
+                status.textContent = "Video uploaded successfully.";
+            }
+        });
+
+        videoElement.addEventListener('leavepictureinpicture', () => {
+            status.textContent = "Left Picture-in-Picture mode.";
+        });
+    </script>
+</body>
+</html>
