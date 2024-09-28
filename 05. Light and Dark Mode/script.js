@@ -6,8 +6,9 @@ const elements = {
   textBox: document.getElementById('text-box')
 };
 
-const updateMode = (isDarkMode) => {
+const applyTheme = (isDarkMode) => {
   const mode = isDarkMode ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', mode);
   elements.nav.style.backgroundColor = isDarkMode ? 'rgb(0 0 0 / 50%)' : 'rgb(255 255 255 / 50%)';
   elements.textBox.style.backgroundColor = isDarkMode ? 'rgb(255 255 255 / 50%)' : 'rgb(0 0 0 / 50%)';
   elements.toggleIcon.children[0].textContent = `${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode`;
@@ -17,15 +18,16 @@ const updateMode = (isDarkMode) => {
 
 const switchTheme = (e) => {
   const isDarkMode = e.target.checked;
-  document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
-  updateMode(isDarkMode);
+  applyTheme(isDarkMode);
   localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
 };
 
-toggleSwitch.addEventListener('change', switchTheme);
-
+// Load the theme from localStorage
 const currentTheme = localStorage.getItem('theme');
 if (currentTheme) {
-  toggleSwitch.checked = currentTheme === 'dark';
-  updateMode(toggleSwitch.checked);
+  const isDarkMode = currentTheme === 'dark';
+  toggleSwitch.checked = isDarkMode;
+  applyTheme(isDarkMode); // Apply the theme on page load
 }
+
+toggleSwitch.addEventListener('change', switchTheme);
